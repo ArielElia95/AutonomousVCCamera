@@ -65,7 +65,7 @@ def obj_center(args, objX, objY, centerX, centerY, faceDetected):
 			faceDetected.value = 0
 			
 		# display the frame to the screen
-		cv2.imshow("Pan-Tilt Face Tracking", frame)
+	#	cv2.imshow("Pan-Tilt Face Tracking", frame)
 		cv2.waitKey(1)
 
 def pid_process(output, p, i, d, objCoord, centerCoord, faceDetected):
