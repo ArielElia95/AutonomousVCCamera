@@ -10,10 +10,22 @@ import signal
 import time
 import sys
 import cv2
+
+# Stream attempt
+import numpy
+import imutils
+from flask import Flask, render_template, Response, request
 #import BIT
 
 # define the range for the motors
 servoRange = (-90, 90)
+
+# Stream attempt
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template('index.html') #you can customze index.html here
 
 # function to handle keyboard interrupt
 def signal_handler(sig, frame):
@@ -45,6 +57,10 @@ def obj_center(args, objX, objY, centerX, centerY, faceDetected):
 		frame = vs.read()
 		frame = cv2.flip(frame, 0)
 
+		# Stream attempt
+		ret, jpeg = cv2.imencode('.jpg', frame)
+		jpegBytes = jpeg.toBytes()
+
 		# calculate the center of the frame as this is where we will
 		# try to keep the object
 		(H, W) = frame.shape[:2]
@@ -66,6 +82,10 @@ def obj_center(args, objX, objY, centerX, centerY, faceDetected):
 			
 		# display the frame to the screen
 	#	cv2.imshow("Pan-Tilt Face Tracking", frame)
+
+	#	Stream attempt
+		yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
 		cv2.waitKey(1)
 
 def pid_process(output, p, i, d, objCoord, centerCoord, faceDetected):
