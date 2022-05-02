@@ -65,7 +65,7 @@ def obj_center(args, objX, objY, centerX, centerY, faceDetected):
 			faceDetected.value = 0
 			
 		# display the frame to the screen
-	#	cv2.imshow("Pan-Tilt Face Tracking", frame)
+		cv2.imshow("Pan-Tilt Face Tracking", frame)
 		cv2.waitKey(1)
 
 def pid_process(output, p, i, d, objCoord, centerCoord, faceDetected):
@@ -105,6 +105,11 @@ def set_servos(pan, tlt, faceDetected):
 	tiltAngle = 90 - pth.get_tilt()
 	first = True
 	#print(panAngle, tiltAngle)
+
+    # Set minimum angle to preform a movement
+	MinPanAngleMovement = 1
+	MinTltAngleMovement = 2
+
 	# loop indefinitely
 	while True:
 		if faceDetected.value == 1:
@@ -117,7 +122,7 @@ def set_servos(pan, tlt, faceDetected):
 				first = False
 				print("Ready")
 			time.sleep(0.2)
-			if (pan.value >= 2 or pan.value <= -2):
+			if (pan.value >= MinPanAngleMovement or pan.value <= -MinPanAngleMovement):
 			#	print("tiltAngle: ", int(tiltAngle))
 			#	print("Tlt value ", int(tlt.value))
 				panAngle = panAngle - pan.value
@@ -127,7 +132,7 @@ def set_servos(pan, tlt, faceDetected):
 				if in_range(panAngle - 90, servoRange[0], servoRange[1]):
 					pth.pan(int(panAngle - 90))
 
-			if (tlt.value >= 2 or tlt.value <= -2):	
+			if (tlt.value >= MinTltAngleMovement or tlt.value <= -MinTltAngleMovement):	
 				tiltAngle = tiltAngle + tlt.value
 				tiltAngle = max(0,min(180,tiltAngle))
 
