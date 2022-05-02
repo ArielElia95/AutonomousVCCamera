@@ -27,7 +27,7 @@ def signal_handler(sig, frame):
 	# exit
 	sys.exit()
 
-def obj_center(args, objX, objY, centerX, centerY, faceDetected):
+def obj_center(args, objX, objY, centerX, centerY, faceDetected, frame):
 	# signal trap to handle keyboard interrupt
 	signal.signal(signal.SIGINT, signal_handler)
 
@@ -200,6 +200,8 @@ if __name__ == "__main__":
 		
 		faceDetected = manager.Value("i", 0)
 		
+		frame = manager.Value()
+
 		#BIT()
 		processBIT = Process(target=BIT)
 		processBIT.start()
@@ -212,7 +214,7 @@ if __name__ == "__main__":
 		# 4. setServos     - drives the servos to proper angles based
 		#                    on PID feedback to keep object in center
 		processObjectCenter = Process(target=obj_center,
-			args=(args, objX, objY, centerX, centerY, faceDetected))		
+			args=(args, objX, objY, centerX, centerY, faceDetected, frame))		
 		processPanning = Process(target=pid_process,
 			args=(pan, panP, panI, panD, objX, centerX, faceDetected))
 		processTilting = Process(target=pid_process,
