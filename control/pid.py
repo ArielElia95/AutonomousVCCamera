@@ -25,10 +25,11 @@ class PID:
 		# pause for a bit
 		time.sleep(sleep)
 
+		# using the equation
 		# grab the current time and calculate delta time
 		self.currTime = time.time()
 		deltaTime = self.currTime - self.prevTime
-		#print(self.currTime, self.prevTime, deltaTime)
+		
 		# delta error
 		deltaError = error - self.prevError
 

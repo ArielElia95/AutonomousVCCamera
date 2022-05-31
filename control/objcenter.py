@@ -19,8 +19,7 @@ class ObjCenter:
 		# check to see if a face was found
 		if len(rects) > 0:
 			# extract the bounding box coordinates of the face and
-			# use the coordinates to determine the center of the
-			# face
+			# use the coordinates to determine the center of the face
 			(x, y, w, h) = rects[0]
 			faceX = int(x + (w / 2.0))
 			faceY = int(y + (h / 2.0))
@@ -28,6 +27,5 @@ class ObjCenter:
 			# return the center (x, y)-coordinates of the face
 			return ((faceX, faceY), rects[0])
 
-		# otherwise no faces were found, so return the center of the
-		# frame
+		# otherwise no faces were found, so return the center of the frame
 		return (frameCenter, None)

@@ -10,7 +10,7 @@ import signal
 import time
 import sys
 import cv2
-#import BIT
+import BIT
 
 # define the range for the motors
 servoRange = (-90, 90)
@@ -41,12 +41,11 @@ def obj_center(args, objX, objY, centerX, centerY, faceDetected):
 	# loop indefinitely
 	while True:
 		# grab the frame from the threaded video stream and flip it
-		# vertically (since our camera was upside down)
+		# vertically (since our camera is upside down)
 		frame = vs.read()
 		frame = cv2.flip(frame, 0)
 
-		# calculate the center of the frame as this is where we will
-		# try to keep the object
+		# calculate the center of the frame
 		(H, W) = frame.shape[:2]
 		centerX.value = W // 2
 		centerY.value = H // 2
@@ -57,15 +56,15 @@ def obj_center(args, objX, objY, centerX, centerY, faceDetected):
 
 		# extract the bounding box and draw it
 		if rect is not None:
-			faceDetected.value = 1
+			faceDetected.value = 1	# face is detected
 			(x, y, w, h) = rect
 			cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0),
 				2)
 		else:
-			faceDetected.value = 0
+			faceDetected.value = 0	# no face detected
 			
 		# display the frame to the screen
-		cv2.imshow("Pan-Tilt Face Tracking", frame)
+		cv2.imshow("Autonomous Robotic VC Camera", frame)
 		cv2.waitKey(1)
 
 def pid_process(output, p, i, d, objCoord, centerCoord, faceDetected):
@@ -75,36 +74,29 @@ def pid_process(output, p, i, d, objCoord, centerCoord, faceDetected):
 	# create a PID and initialize it
 	pid = PID(p.value, i.value, d.value)
 	pid.initialize()
-	first = True
+
 	# loop indefinitely
 	while True:
-		# calculate the error
+		# calculate the error if there's a face in frame
 		if faceDetected.value == 1:
-			error = centerCoord.value - objCoord.value
-			#if first:
-			#	_ = pid.update(error)
-			#	first = False
-				#time.sleep(2)
-				#print("Hey")
-			#else:
-				# update the value			
-			output.value = pid.update(error)
-			#print("output ", output.value)
-			#print(output.value)	
-				#print("In else")		
+			error = centerCoord.value - objCoord.value			
+			output.value = pid.update(error)		
 		
 
 def in_range(val, start, end):
-	# determine the input value is in the supplied range
+	# determine the input value is in the motor's range
 	return (val >= start and val <= end)
 
 def set_servos(pan, tlt, faceDetected):
 	# signal trap to handle keyboard interrupt
 	signal.signal(signal.SIGINT, signal_handler)
+
+	# normalizing the angels of the motors
 	panAngle = pth.get_pan() + 90
 	tiltAngle = 90 - pth.get_tilt()
+
+	# first usage needs to be delt with
 	first = True
-	#print(panAngle, tiltAngle)
 
     # Set minimum angle to preform a movement
 	MinPanAngleMovement = 1
@@ -113,25 +105,23 @@ def set_servos(pan, tlt, faceDetected):
 	# loop indefinitely
 	while True:
 		if faceDetected.value == 1:
-			# the pan and tilt angles are reversed
-			'''panAngle = -1 * pan.value
-			tiltAngle = -1 * tlt.value'''
-
 			if first:
+				# timeout to let the settings set on first time
 				time.sleep(3)
 				first = False
 				print("Ready")
+			
 			time.sleep(0.2)
+			# panning
 			if (pan.value >= MinPanAngleMovement or pan.value <= -MinPanAngleMovement):
-			#	print("tiltAngle: ", int(tiltAngle))
-			#	print("Tlt value ", int(tlt.value))
 				panAngle = panAngle - pan.value
 				panAngle = max(0,min(180,panAngle))
 			
 				# if the pan angle is within the range, pan
 				if in_range(panAngle - 90, servoRange[0], servoRange[1]):
 					pth.pan(int(panAngle - 90))
-
+			
+			# tilting
 			if (tlt.value >= MinTltAngleMovement or tlt.value <= -MinTltAngleMovement):	
 				tiltAngle = tiltAngle + tlt.value
 				tiltAngle = max(0,min(180,tiltAngle))
@@ -139,29 +129,8 @@ def set_servos(pan, tlt, faceDetected):
 				# if the tilt angle is within the range, tilt
 				if in_range(tiltAngle, servoRange[0], servoRange[1]):
 					pth.tilt(int(90 - tiltAngle))
-
-				'''print(pan.value, tlt.value)'''
-			#	print(panAngle, tiltAngle)
 					
-
-def BIT():
-	# Perform full servo movement and set starting position	
-    pth.pan(-90)       
-    pth.tilt(-90)
-    time.sleep(1)
-    for i in range(-90, 91):
-        pth.pan(i)       
-        pth.tilt(i)
-        time.sleep(0.005)
-
-    time.sleep(0.5)
-    pth.tilt(60)
-    pth.pan(0)
-    time.sleep(1)
-
-    print("Finished")
-
-# check to see if this is the main body of execution
+# main
 if __name__ == "__main__":
 	# construct the argument parser and parse the arguments
 	ap = argparse.ArgumentParser()
@@ -184,38 +153,33 @@ if __name__ == "__main__":
 		objY = manager.Value("i", 0)
 
 		# pan and tilt values will be managed by independed PIDs
-		pan = manager.Value("i", 60)
+		pan = manager.Value("i", 0)
 		tlt = manager.Value("i", 0)
 		
-        # set PID values for panning
-		'''panP = manager.Value("f", 0.26)
-		panI = manager.Value("f", 0.11)
-		panD = manager.Value("f", 0.001)'''
+        # set PID values for panning with manual tuning algorithm
 		panP = manager.Value("f", 0.08)
 		panI = manager.Value("f", 0.0033)
 		panD = manager.Value("f", 0.0011)
 
-		# set PID values for tilting
-		'''tiltP = manager.Value("f", 0.20)
-		tiltI = manager.Value("f", 0.11)
-		tiltD = manager.Value("f", 0.001)'''
+		# set PID values for tilting with manual tuning algorithm
 		tiltP = manager.Value("f", 0.08)
 		tiltI = manager.Value("f", 0.003)
 		tiltD = manager.Value("f", 0.001)
 		
+		# indicator if a face is detected in frame
 		faceDetected = manager.Value("i", 0)
 		
-		#BIT()
-		processBIT = Process(target=BIT)
+		# BIT process to go through full motion range and set initial angle
+		processBIT = Process(target=BIT.BIT)
 		processBIT.start()
 		processBIT.join()		
 
         # we have 4 independent processes
-		# 1. objectCenter  - finds/localizes the object
+		# 1. objectCenter  - finds the object
 		# 2. panning       - PID control loop determines panning angle
 		# 3. tilting       - PID control loop determines tilting angle
-		# 4. setServos     - drives the servos to proper angles based
-		#                    on PID feedback to keep object in center
+		# 4. setServos     - moves  the servos to proper angles based on PID process output
+
 		processObjectCenter = Process(target=obj_center,
 			args=(args, objX, objY, centerX, centerY, faceDetected))		
 		processPanning = Process(target=pid_process,
@@ -236,6 +200,6 @@ if __name__ == "__main__":
 		processTilting.join()
 		processSetServos.join()
         
-		# disable the servos
+		# disable the servos when done
 		pth.servo_enable(1, False)
 		pth.servo_enable(2, False)
